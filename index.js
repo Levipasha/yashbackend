@@ -105,11 +105,13 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// MongoDB Connection
+// MongoDB Connection for Serverless & Local
 if (process.env.MONGO_URI) {
-  mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging serverless function
+  })
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err.message));
 } else {
   console.warn('MONGO_URI missing in environment variables');
 }
