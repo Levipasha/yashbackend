@@ -122,17 +122,21 @@ cloudinary.config({
 });
 
 // Passport Google Auth Strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/auth/google/callback"
-  },
-  function(accessToken, refreshToken, profile, cb) {
-    // In a real app, find or create the user in the database here
-    console.log('Google Profile:', profile);
-    return cb(null, profile);
-  }
-));
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id') {
+  passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/auth/google/callback"
+    },
+    function(accessToken, refreshToken, profile, cb) {
+      // In a real app, find or create the user in the database here
+      console.log('Google Profile:', profile);
+      return cb(null, profile);
+    }
+  ));
+} else {
+  console.warn('Google OAuth strategy skipped: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured.');
+}
 
 passport.serializeUser((user, done) => {
   done(null, user);
