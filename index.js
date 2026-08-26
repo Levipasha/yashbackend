@@ -8,6 +8,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const cloudinary = require('cloudinary').v2;
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const http = require('http');
 const app = express();
@@ -81,10 +82,14 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Ensure uploads folder exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads folder exists (safely handle Vercel read-only filesystem)
+const uploadsDir = process.env.VERCEL ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Uploads directory creation warning:', err.message);
 }
 
 // Middleware
@@ -101,9 +106,13 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+if (process.env.MONGO_URI) {
+  mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
+} else {
+  console.warn('MONGO_URI missing in environment variables');
+}
 
 // Cloudinary Configuration
 cloudinary.config({ 
@@ -916,6 +925,10 @@ app.get('/auth/google/callback',
   });
 
 // Start Server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
