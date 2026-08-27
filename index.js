@@ -101,7 +101,25 @@ try {
   console.warn('Uploads directory creation warning:', err.message);
 }
 
+// URL Normalization Middleware for Vercel Serverless Function Rewrites
+app.use((req, res, next) => {
+  if (req.url.length > 1 && req.url.includes('/?') ) {
+    req.url = req.url.replace('/?', '?');
+  }
+  if (req.url.length > 1 && req.url.endsWith('/') && !req.url.includes('?')) {
+    req.url = req.url.slice(0, -1);
+  }
+  if (req.url.startsWith('/api/index.js')) {
+    req.url = req.url.replace('/api/index.js', '/api');
+  }
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/uploads') && req.url !== '/') {
+    req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
+  }
+  next();
+});
+
 // CORS & Middleware Configuration
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
