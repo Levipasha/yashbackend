@@ -106,15 +106,22 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // MongoDB Connection for Serverless & Local
-if (process.env.MONGO_URI) {
-  mongoose.connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging serverless function
-  })
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err.message));
-} else {
-  console.warn('MONGO_URI missing in environment variables');
-}
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  if (!process.env.MONGO_URI) {
+    console.warn('MONGO_URI missing in environment variables');
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log('MongoDB connected successfully');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+  }
+};
+connectDB();
 
 // Cloudinary Configuration
 cloudinary.config({ 
