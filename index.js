@@ -140,12 +140,13 @@ app.use(passport.session());
 // MongoDB Connection for Serverless & Local
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
-  if (!process.env.MONGO_URI) {
-    console.warn('MONGO_URI missing in environment variables');
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.warn('MONGO_URI or MONGODB_URI missing in environment variables');
     return;
   }
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
     });
     console.log('MongoDB connected successfully');
@@ -153,7 +154,12 @@ const connectDB = async () => {
     console.error('MongoDB connection error:', err.message);
   }
 };
-connectDB();
+
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 
 // Cloudinary Configuration
 cloudinary.config({ 
@@ -819,6 +825,9 @@ app.get('/api/users', async (req, res) => {
 
 app.put('/api/users/id/:id', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -852,62 +861,57 @@ app.put('/api/users/id/:id', async (req, res) => {
   }
 });
 
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:identifier', async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    if (req.body.maxMarks) {
-      user.maxMarks = req.body.maxMarks;
-      user.markModified('maxMarks');
-    }
-    if (req.body.marksObtained) {
-      user.marksObtained = req.body.marksObtained;
-      user.markModified('marksObtained');
-    }
-    if (req.body.performanceScores) {
-      user.performanceScores = req.body.performanceScores;
-      user.markModified('performanceScores');
-    }
-    if (req.body.teacherRemarks !== undefined) {
-      user.teacherRemarks = req.body.teacherRemarks;
-    }
-
-    Object.keys(req.body).forEach(key => {
-      if (!['maxMarks', 'marksObtained', 'performanceScores', 'teacherRemarks'].includes(key)) {
-        user[key] = req.body[key];
-      }
-    });
-
-    await user.save();
-    res.json(user);
-  } catch (error) {
-    console.error('Error updating user by id:', error);
-    res.status(500).json({ message: 'Error updating user' });
-  }
-});
-
-app.put('/api/users/:email', async (req, res) => {
-  try {
-    const { email } = req.params;
+    const { identifier } = req.params;
     const { role } = req.query;
-    const filter = { email: { $regex: new RegExp(`^${email.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } };
-    if (role) filter.role = role;
-    
-    const updatedUser = await User.findOneAndUpdate(
-      filter,
-      { $set: req.body },
-      { returnDocument: 'after' }
-    );
-    if (!updatedUser) {
+
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      user = await User.findById(identifier);
+    }
+
+    if (!user) {
+      const decodedParam = decodeURIComponent(identifier);
+      const filter = { email: { $regex: new RegExp(`^${decodedParam.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } };
+      if (role) filter.role = role;
+      user = await User.findOne(filter);
+    }
+
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(updatedUser);
+
+    if (req.body.maxMarks) {
+      user.maxMarks = req.body.maxMarks;
+      user.markModified('maxMarks');
+    }
+    if (req.body.marksObtained) {
+      user.marksObtained = req.body.marksObtained;
+      user.markModified('marksObtained');
+    }
+    if (req.body.performanceScores) {
+      user.performanceScores = req.body.performanceScores;
+      user.markModified('performanceScores');
+    }
+    if (req.body.teacherRemarks !== undefined) {
+      user.teacherRemarks = req.body.teacherRemarks;
+    }
+
+    Object.keys(req.body).forEach(key => {
+      if (!['maxMarks', 'marksObtained', 'performanceScores', 'teacherRemarks'].includes(key)) {
+        user[key] = req.body[key];
+      }
+    });
+
+    await user.save();
+    res.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
     res.status(500).json({ message: 'Error updating user', error: error.message });
   }
 });
+
 
 app.delete('/api/users/:id', async (req, res) => {
   try {
