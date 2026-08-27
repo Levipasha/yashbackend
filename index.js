@@ -327,8 +327,6 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-const pdfParse = require('pdf-parse');
-
 // PDF File Upload Route
 app.post('/api/upload-pdf', async (req, res) => {
   try {
@@ -381,6 +379,7 @@ app.post('/api/upload-image', async (req, res) => {
 // PDF to MCQ Conversion Route
 app.post('/api/convert-pdf-to-mcq', async (req, res) => {
   try {
+    const pdfParse = require('pdf-parse');
     const { fileData } = req.body;
     if (!fileData) {
       return res.status(400).json({ message: 'No PDF file data provided' });
@@ -483,11 +482,10 @@ app.post('/api/convert-pdf-to-mcq', async (req, res) => {
   }
 });
 
-const PDFDocument = require('pdfkit');
-
 // Generate & Send Official PDF Report Card Route
 app.post('/api/users/generate-report-card', async (req, res) => {
   try {
+    const PDFDocument = require('pdfkit');
     const { studentId, maxMarks, marksObtained, teacherRemarks, attendance, attendanceStatus } = req.body;
     if (!studentId) {
       return res.status(400).json({ message: 'Student ID required' });
