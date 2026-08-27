@@ -408,6 +408,33 @@ app.post('/api/upload-image', async (req, res) => {
       return res.status(400).json({ message: 'No image file data provided' });
     }
 
+    // Try Cloudinary upload if configured
+    if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(fileData, {
+          folder: 'yashedu_uploads',
+          resource_type: 'auto'
+        });
+        console.log('Image uploaded to Cloudinary:', uploadResult.secure_url);
+        return res.json({ 
+          imageUrl: uploadResult.secure_url, 
+          fileUrl: uploadResult.secure_url, 
+          fileName: fileName || uploadResult.public_id 
+        });
+      } catch (cloudErr) {
+        console.error('Cloudinary upload error:', cloudErr.message);
+      }
+    }
+
+    // On Vercel serverless environment, return base64 URL directly if Cloudinary is not set
+    if (process.env.VERCEL && fileData.startsWith('data:image/')) {
+      return res.json({ 
+        imageUrl: fileData, 
+        fileUrl: fileData, 
+        fileName: fileName || 'image.png' 
+      });
+    }
+
     const safeName = (fileName || 'image.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFileName = `${Date.now()}_${safeName}`;
     const filePath = path.join(uploadsDir, uniqueFileName);
