@@ -101,8 +101,15 @@ try {
   console.warn('Uploads directory creation warning:', err.message);
 }
 
-// Middleware
-app.use(cors());
+// CORS & Middleware Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : '*';
+
+app.use(cors({
+  origin: allowedOrigins === '*' ? '*' : allowedOrigins,
+  credentials: true
+}));
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ limit: '1000mb', extended: true }));
 app.use('/uploads', express.static(uploadsDir));
@@ -343,7 +350,8 @@ app.post('/api/upload-pdf', async (req, res) => {
     const base64Data = fileData.replace(/^data:application\/pdf;base64,/, '').replace(/^data:.*?;base64,/, '');
     fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
 
-    const fileUrl = `http://localhost:5000/uploads/${uniqueFileName}`;
+    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${baseUrl}/uploads/${uniqueFileName}`;
     console.log(`PDF saved to disk: ${filePath} -> ${fileUrl}`);
     res.json({ fileUrl, fileName: safeName });
   } catch (error) {
@@ -367,7 +375,8 @@ app.post('/api/upload-image', async (req, res) => {
     const base64Data = fileData.replace(/^data:image\/[a-zA-Z]+;base64,/, '').replace(/^data:.*?;base64,/, '');
     fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
 
-    const fileUrl = `http://localhost:5000/uploads/${uniqueFileName}`;
+    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${baseUrl}/uploads/${uniqueFileName}`;
     console.log(`Image saved to disk: ${filePath} -> ${fileUrl}`);
     res.json({ imageUrl: fileUrl, fileUrl, fileName: safeName });
   } catch (error) {
@@ -708,7 +717,8 @@ app.post('/api/users/generate-report-card', async (req, res) => {
     doc.end();
 
     writeStream.on('finish', async () => {
-      const fileUrl = `http://localhost:5000/uploads/${safeName}`;
+      const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+      const fileUrl = `${baseUrl}/uploads/${safeName}`;
       student.reportCardUrl = fileUrl;
       student.reportCardName = safeName;
       await student.save();
