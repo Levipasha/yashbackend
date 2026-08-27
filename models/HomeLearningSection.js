@@ -57,6 +57,22 @@ const homeLearningSectionSchema = new mongoose.Schema({
   teachingMethodAssuranceTitle: { type: String, default: 'Why Parents Trust Our Methodology' },
   teachingMethodAssuranceDesc: { type: String, default: 'Every student gets personalized attention with weekly updates delivered directly to parents.' },
   
+  // Hero Section Fields
+  heroBadgeText: { type: String, default: 'QUALITY EDUCATION. BRIGHTER FUTURES.' },
+  heroTitleLine1: { type: String, default: 'Learn Without' },
+  heroTitleLine2: { type: String, default: 'Limits.' },
+  heroDescription1: { type: String, default: 'Give your child the right guidance, personal attention, and strong academic foundation they need to succeed.' },
+  heroDescription2: { type: String, default: 'Our tuition program provides a supportive and engaging learning environment for every student. We focus on helping students understand concepts clearly rather than simply memorizing answers.' },
+  heroButtonText: { type: String, default: 'Start Learning' },
+  heroButtonLink: { type: String, default: '/courses' },
+  heroImage: { type: String, default: '' },
+  heroStat1Value: { type: String, default: '50K+' },
+  heroStat1Label: { type: String, default: 'Students' },
+  heroStat2Value: { type: String, default: 'Live Classes' },
+  heroStat2Label: { type: String, default: 'Daily' },
+  heroStat3Value: { type: String, default: '500+' },
+  heroStat3Label: { type: String, default: 'Courses' },
+
   updatedAt: { type: Date, default: Date.now }
 });
 
