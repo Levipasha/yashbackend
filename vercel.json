@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
@@ -12,10 +11,10 @@
       ]
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index.js"
+      "src": "/(.*)",
+      "dest": "/api/index.js"
     }
   ]
 }
