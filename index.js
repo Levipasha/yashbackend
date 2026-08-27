@@ -12,73 +12,82 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const app = express();
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server, {
-  cors: {
-    origin: "*", // allow all for dev
-    methods: ["GET", "POST"]
-  }
-});
-app.set('io', io);
+let server = app;
+let io = null;
 
-const Message = require('./models/Message');
-
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
-
-  socket.on('joinRoom', (roomId) => {
-    if (roomId) {
-      socket.join(roomId.toString());
-      console.log(`Socket ${socket.id} joined room ${roomId}`);
-    }
-  });
-
-  socket.on('sendPrivateMessage', async (data) => {
-    try {
-      const { senderId, receiverId, content } = data;
-      if (!senderId || !content) return;
-
-      const newMessage = new Message({
-        senderId,
-        receiverId: receiverId || null,
-        content,
-        createdAt: new Date()
-      });
-      await newMessage.save();
-
-      if (receiverId) {
-        io.to(receiverId.toString()).emit('receiveMessage', newMessage);
+if (!process.env.VERCEL) {
+  server = http.createServer(app);
+  try {
+    const { Server } = require("socket.io");
+    io = new Server(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
       }
-      io.to(senderId.toString()).emit('receiveMessage', newMessage);
-    } catch (err) {
-      console.error('Socket sendPrivateMessage error:', err);
-    }
-  });
+    });
+    app.set('io', io);
 
-  socket.on('sendGroupMessage', async (data) => {
-    try {
-      const { senderId, groupId, content } = data;
-      if (!senderId || !groupId || !content) return;
+    const Message = require('./models/Message');
 
-      const newMessage = new Message({
-        senderId,
-        groupId,
-        content,
-        createdAt: new Date()
+    io.on('connection', (socket) => {
+      console.log('Socket connected:', socket.id);
+
+      socket.on('joinRoom', (roomId) => {
+        if (roomId) {
+          socket.join(roomId.toString());
+          console.log(`Socket ${socket.id} joined room ${roomId}`);
+        }
       });
-      await newMessage.save();
 
-      io.to(groupId.toString()).emit('receiveMessage', newMessage);
-    } catch (err) {
-      console.error('Socket sendGroupMessage error:', err);
-    }
-  });
+      socket.on('sendPrivateMessage', async (data) => {
+        try {
+          const { senderId, receiverId, content } = data;
+          if (!senderId || !content) return;
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
-  });
-});
+          const newMessage = new Message({
+            senderId,
+            receiverId: receiverId || null,
+            content,
+            createdAt: new Date()
+          });
+          await newMessage.save();
+
+          if (receiverId) {
+            io.to(receiverId.toString()).emit('receiveMessage', newMessage);
+          }
+          io.to(senderId.toString()).emit('receiveMessage', newMessage);
+        } catch (err) {
+          console.error('Socket sendPrivateMessage error:', err);
+        }
+      });
+
+      socket.on('sendGroupMessage', async (data) => {
+        try {
+          const { senderId, groupId, content } = data;
+          if (!senderId || !groupId || !content) return;
+
+          const newMessage = new Message({
+            senderId,
+            groupId,
+            content,
+            createdAt: new Date()
+          });
+          await newMessage.save();
+
+          io.to(groupId.toString()).emit('receiveMessage', newMessage);
+        } catch (err) {
+          console.error('Socket sendGroupMessage error:', err);
+        }
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected:', socket.id);
+      });
+    });
+  } catch (socketErr) {
+    console.warn('Socket.io skipped on serverless env:', socketErr.message);
+  }
+}
 
 const PORT = process.env.PORT || 5000;
 
@@ -936,6 +945,17 @@ app.get('/auth/google/callback',
     // Successful authentication, redirect home.
     res.redirect('/');
   });
+
+// Global Express Error Handler for Serverless Safety
+app.use((err, req, res, next) => {
+  console.error('Global Express Error caught:', err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: err.message || 'An error occurred processing your request'
+    });
+  }
+});
 
 // Start Server
 if (!process.env.VERCEL) {
