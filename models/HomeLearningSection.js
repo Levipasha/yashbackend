@@ -51,8 +51,8 @@ const homeLearningSectionSchema = new mongoose.Schema({
   // Teaching Method Section
   teachingMethodVisible: { type: Boolean, default: true },
   teachingMethodBadge: { type: String, default: 'Our Teaching Method' },
-  teachingMethodTitle: { type: String, default: 'How We Help Students Improve' },
-  teachingMethodDescription: { type: String, default: 'A proven 4-step structured learning journey designed to build conceptual clarity, boost confidence, and drive continuous academic growth.' },
+  teachingMethodTitle: { type: String, default: 'Our 4-Step Learning Journey' },
+  teachingMethodDescription: { type: String, default: 'A proven methodology that helps students learn better, practice smarter, and achieve more.' },
   teachingMethodSteps: [teachingStepSchema],
   teachingMethodAssuranceTitle: { type: String, default: 'Why Parents Trust Our Methodology' },
   teachingMethodAssuranceDesc: { type: String, default: 'Every student gets personalized attention with weekly updates delivered directly to parents.' },

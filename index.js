@@ -129,7 +129,8 @@ app.use((req, res, next) => {
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Authorization, Origin');
+  const reqHeaders = req.headers['access-control-request-headers'];
+  res.setHeader('Access-Control-Allow-Headers', reqHeaders || 'X-Requested-With, Content-Type, Accept, Authorization, Origin, user-email, user-id, role, User-Email, User-Id, Role, X-CSRF-Token, X-Api-Version, *');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -138,9 +139,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: function (origin, callback) {
-    return callback(null, true);
-  },
+  origin: true,
   credentials: true
 }));
 
